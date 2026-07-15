@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Explorer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Courier New', monospace; color: #e0e0e0; }
+.game-container { background: #16213e; border: 2px solid #0f3460; border-radius: 12px; padding: 24px; box-shadow: 0 0 40px rgba(15, 52, 96, 0.5); }
+h1 { text-align: center; color: #e94560; margin-bottom: 12px; font-size: 22px; letter-spacing: 4px; }
+.info-bar { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+canvas { display: block; margin: 0 auto; border: 1px solid #0f3460; border-radius: 4px; image-rendering: pixelated; }
+.controls { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.controls button { width: 48px; height: 48px; font-size: 20px; background: #0f3460; color: #e0e0e0; border: 1px solid #1a4a7a; border-radius: 8px; cursor: pointer; }
+.controls button:hover { background: #1a4a7a; }
+.controls .row { display: flex; gap: 6px; }
+.status { text-align: center; margin-top: 10px; font-size: 15px; min-height: 22px; }
+button.restart { background: #e94560; border: none; color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+button.restart:hover { background: #ff6b81; }
+</style>
+</head>
+<body>
+<div class="game-container">
+  <h1>DUNGEON EXPLORER</h1>
+  <div class="info-bar">
+    <span>Score: <b id="score">0</b></span>
+    <span>Treasures: <b id="treasures">0</b></span>
+    <span>Monsters: <b id="monsters">0</b></span>
+  </div>
+  <canvas id="game" width="480" height="320"></canvas>
+  <div class="controls">
+    <div><button id="btnUp">▲</button></div>
+    <div class="row"><button id="btnLeft">◀</button><button id="btnDown">▼</button><button id="btnRight">▶</button></div>
+  </div>
+  <div class="status" id="status">Collect <b>$</b> treasures, avoid <b style="color:#e94560">M</b> monsters!</div>
+  <div style="text-align:center; margin-top:8px;"><button class="restart" id="btnRestart">Restart</button></div>
+</div>
+<script>
+const CELL = 32;
+const COLS = 15, ROWS = 10;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let px, py, treasures, monsters, walls, obstacles, score, gameOver, won;
+
+function init() {
+  px = 7; py = 5; score = 0; gameOver = false; won = false;
+  walls = new Set();
+  obstacles = new Set();
+  for (let x = 0; x < COLS; x++) { walls.add(x+','+0); walls.add(x+','+(ROWS-1)); }
+  for (let y = 0; y < ROWS; y++) { walls.add(0+','+y); walls.add((COLS-1)+','+y); }
+  let taken = new Set([px+','+py]);
+  for (let i = 0; i < 20; i++) {
+    let x = 1+Math.floor(Math.random()*(COLS-2));
+    let y = 1+Math.floor(Math.random()*(ROWS-2));
+    let k = x+','+y;
+    if (!taken.has(k)) { obstacles.add(k); taken.add(k); }
+  }
+  treasures = []; monsters = [];
+  for (let i = 0; i < 5; i++) placeItem(treasures, taken);
+  for (let i = 0; i < 3; i++) placeItem(monsters, taken);
+  updateInfo();
+  render();
+}
+
+function placeItem(arr, taken) {
+  for (let i = 0; i < 500; i++) {
+    let x = 1+Math.floor(Math.random()*(COLS-2));
+    let y = 1+Math.floor(Math.random()*(ROWS-2));
+    let k = x+','+y;
+    if (!walls.has(k) && !obstacles.has(k) && !taken.has(k)) {
+      arr.push({x,y}); taken.add(k); return;
+    }
+  }
+}
+
+function move(dx, dy) {
+  if (gameOver || won) return;
+  let nx = px + dx, ny = py + dy;
+  if (walls.has(nx+','+ny) || obstacles.has(nx+','+ny)) return;
+  px = nx; py = ny;
+  for (let i = 0; i < treasures.length; i++) {
+    if (treasures[i].x === px && treasures[i].y === py) {
+      treasures.splice(i, 1); score += 10;
+      if (treasures.length === 0) { won = true; setStatus('✨ YOU WIN! ✨'); }
+      break;
+    }
+  }
+  for (let m of monsters) {
+    if (m.x === px && m.y === py) { gameOver = true; setStatus('💀 GAME OVER! 💀'); break; }
+  }
+  updateInfo(); render();
+}
+
+function setStatus(msg) { document.getElementById('status').innerHTML = msg; }
+
+function updateInfo() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('treasures').textContent = treasures.length;
+  document.getElementById('monsters').textContent = monsters.length;
+}
+
+function render() {
+  ctx.clearRect(0, 0, 480, 320);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (walls.has(x+','+y)) { ctx.fillStyle = '#4a4a6a'; ctx.fillRect(x*CELL, y*CELL, CELL, CELL); }
+    else if (obstacles.has(x+','+y)) { ctx.fillStyle = '#2a2a4a'; ctx.fillRect(x*CELL, y*CELL, CELL, CELL); ctx.fillStyle = '#5a5a8a'; ctx.fillRect(x*CELL+4, y*CELL+4, 8, 8); }
+    else { ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x*CELL, y*CELL, CELL, CELL); ctx.strokeStyle = '#222244'; ctx.lineWidth = 1; ctx.strokeRect(x*CELL, y*CELL, CELL, CELL); }
+  }
+  for (let t of treasures) { ctx.fillStyle = '#ffd700'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', t.x*CELL+16, t.y*CELL+16); }
+  for (let m of monsters) { ctx.fillStyle = '#e94560'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('M', m.x*CELL+16, m.y*CELL+16); }
+  ctx.fillStyle = '#00ff88'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('@', px*CELL+16, py*CELL+16);
+  if (gameOver) { ctx.fillStyle = 'rgba(233,69,96,0.3)'; ctx.fillRect(0, 0, 480, 320); }
+  if (won) { ctx.fillStyle = 'rgba(0,255,136,0.2)'; ctx.fillRect(0, 0, 480, 320); }
+}
+
+document.addEventListener('keydown', e => {
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': move(0, -1); e.preventDefault(); break;
+    case 'ArrowDown': case 's': case 'S': move(0, 1); e.preventDefault(); break;
+    case 'ArrowLeft': case 'a': case 'A': move(-1, 0); e.preventDefault(); break;
+    case 'ArrowRight': case 'd': case 'D': move(1, 0); e.preventDefault(); break;
+  }
+});
+document.getElementById('btnUp').onclick = () => move(0, -1);
+document.getElementById('btnDown').onclick = () => move(0, 1);
+document.getElementById('btnLeft').onclick = () => move(-1, 0);
+document.getElementById('btnRight').onclick = () => move(1, 0);
+document.getElementById('btnRestart').onclick = () => { init(); setStatus('Collect <b>$</b> treasures, avoid <b style="color:#e94560">M</b> monsters!'); };
+
+init();
+</script>
+</body>
+</html>
