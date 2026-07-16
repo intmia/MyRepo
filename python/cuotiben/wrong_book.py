@@ -2,11 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
-#Please ensure UTF-8 encoding is used to guarantee proper display of Chinese.
-# 数据文件
 DATA_FILE = os.path.join(os.path.dirname(__file__), "wrong_data.json")
 
-# 初始化数据
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
@@ -19,12 +16,11 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# 主窗口
 root = tk.Tk()
 root.title("智能错题本小程序 - 刘佩霖")
 root.geometry("750x550")
 
-# 选项卡
+
 tab = ttk.Notebook(root)
 tab_add = ttk.Frame(tab)
 tab_show = ttk.Frame(tab)
@@ -37,7 +33,6 @@ tab.add(tab_practice, text="错题练习")
 tab.add(tab_stats, text="数据统计")
 tab.pack(expand=1, fill="both")
 
-# ====================== 1. 添加错题 ======================
 tk.Label(tab_add, text="科目：", font=("黑体", 12)).place(x=30, y=30)
 sub_var = tk.StringVar()
 sub_entry = ttk.Combobox(tab_add, textvariable=sub_var, values=["数学", "语文", "英语", "物理", "道法", "历史","地理","生物","化学"])
@@ -89,7 +84,7 @@ def add_wrong():
 
 tk.Button(tab_add, text="保存错题", font=("黑体", 12), bg="#409eff", fg="white", command=add_wrong).place(x=100, y=280, width=120)
 
-# ====================== 2. 查看错题 ======================
+
 tree = ttk.Treeview(tab_show, columns=("sub", "q", "my", "ans", "reason"), show="headings", height=15)
 tree.heading("sub", text="科目")
 tree.heading("q", text="题目")
@@ -134,7 +129,6 @@ def filter_data():
 tk.Button(tab_show, text="筛选", command=filter_data).place(x=280, y=400)
 show_all()
 
-# ====================== 3. 错题练习 ======================
 def practice():
     data = load_data()
     if not data:
@@ -172,7 +166,6 @@ def practice():
 
 tk.Button(tab_practice, text="开始错题练习", font=("黑体", 14), bg="#67c23a", fg="white", command=practice).pack(pady=50)
 
-# ====================== 4. 数据统计 ======================
 stats_label = tk.Label(tab_stats, text="", font=("黑体", 14), justify="left")
 stats_label.place(x=50, y=50)
 
